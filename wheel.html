@@ -153,6 +153,8 @@
   .status-dot.off{ background:var(--danger); }
   .status-line{ display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--muted); }
   .queue-item{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:8px 10px; font-size:12.5px; }
+  .queue-info{ flex:1 1 220px; }
+  .queue-controls{ display:flex; gap:6px; flex-wrap:wrap; align-items:center; flex:1 1 auto; }
 
   /* wheel */
   .wheel-zone{ display:flex; flex-direction:column; align-items:center; gap:16px; }
@@ -243,32 +245,22 @@
   <!-- AUCTION -->
   <section class="panel" data-panel="auction">
     <div class="card">
-      <h2>Курс конвертації</h2>
-      <div class="hint">Скільки коштує редемпшн і скільки гривень він додає до обраної гри.</div>
-      <div class="row" style="margin-top:12px;">
-        <label class="field">Назва редімки
-          <input type="text" id="cfgRewardTitle">
-        </label>
-        <label class="field">Вартість (бали)
-          <input type="number" id="cfgCost" min="1" step="1">
-        </label>
-        <label class="field">Балів за 1 ₴
-          <input type="number" id="cfgRate" min="1" step="1">
-        </label>
-        <label class="field">= гривень за редемпшн
-          <input type="text" id="cfgResult" class="mono" disabled>
-        </label>
-      </div>
+      <h2>Тарифи редімок</h2>
+      <div class="hint">До трьох редімок з різною вартістю в балах. Назва звіряється з назвою редімки на Twitch (частковий збіг), вартість — точно.</div>
+      <div id="tierRows" style="display:flex; flex-direction:column; gap:10px; margin-top:12px;"></div>
     </div>
 
     <div class="card">
       <h2>Зарахувати редемпшн вручну</h2>
       <div class="hint">Використовуйте, поки нема живого підключення до Twitch — або для ручних донатів.</div>
       <div class="row" style="margin-top:12px; align-items:flex-end;">
-        <label class="field" style="flex:2 1 180px;">Гра
+        <label class="field" style="flex:2 1 170px;">Гра
           <select id="manualGameSelect"></select>
         </label>
-        <label class="field" style="flex:1 1 130px;">Сума (₴)
+        <label class="field" style="flex:1 1 150px;">Тариф
+          <select id="manualTier"></select>
+        </label>
+        <label class="field" style="flex:1 1 100px;">Сума (₴)
           <input type="number" id="manualAmount" class="mono" min="0" step="0.5">
         </label>
         <label class="field" style="flex:1 1 130px;">Глядач (необов'язково)
@@ -276,14 +268,14 @@
         </label>
         <button class="btn gold" id="manualRedeemBtn" style="flex:none;">+ Зарахувати ставку</button>
       </div>
-      <div class="hint">Сума за замовчуванням береться з курсу вище, але її можна змінити для довільного доната.</div>
+      <div class="hint">Сума підставляється з обраного тарифу, але її можна вручну змінити для довільного доната.</div>
     </div>
 
     <details class="adv" id="twitchPanel">
       <summary>⚡ Пряме підключення до Twitch (експериментально)</summary>
       <div class="adv-body">
         <div class="hint">
-          Слухає редемпшни Channel Points у реальному часі через Twitch EventSub і сам зараховує ставки, коли назва редімки збігається з налаштованою вище. Працює повністю в браузері, бекенд не потрібен — але потребує власного застосунку на <span class="mono">dev.twitch.tv</span> з Redirect URI, що збігається з адресою сторінки.
+          Слухає редемпшни Channel Points у реальному часі через Twitch EventSub і сам зараховує ставки, коли назва й вартість редемпшна збігаються з одним із тарифів вище. Працює повністю в браузері, бекенд не потрібен — але потребує власного застосунку на <span class="mono">dev.twitch.tv</span> з Redirect URI, що збігається з адресою сторінки.
         </div>
         <div class="hint" style="color:var(--gold);">
           У вбудованому перегляді артефакту OAuth-редірект і WebSocket можуть блокуватись пісочницею. Якщо не спрацює тут — збережіть HTML-файл і захостіть окремо (GitHub Pages, будь-який статичний хостинг), зареєструвавши ту адресу як Redirect URI.
@@ -299,7 +291,7 @@
         </div>
         <div class="status-line"><span class="status-dot off" id="twStatusDot"></span><span id="twStatusText">Не підключено</span></div>
         <div id="twQueueWrap" style="display:none;">
-          <div class="hint" style="margin-bottom:6px;">Редемпшни, які не вдалось автоматично зіставити з грою — призначте вручну:</div>
+          <div class="hint" style="margin-bottom:6px;">Редемпшни, які не вдалось автоматично зіставити з грою — призначте наявній грі або створіть нову за назвою, яку ввів глядач:</div>
           <div id="twQueue" style="display:flex; flex-direction:column; gap:6px;"></div>
         </div>
       </div>
@@ -352,6 +344,14 @@
 
   function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
 
+  function defaultRewards(){
+    return [
+      { id: uid(), title: "Обери гру — Mini", cost: 10000, uah: 50 },
+      { id: uid(), title: "Обери гру — Midi", cost: 20000, uah: 100 },
+      { id: uid(), title: "Обери гру — Maxi", cost: 50000, uah: 250 }
+    ];
+  }
+
   function defaultState(){
     return {
       games: [
@@ -363,12 +363,43 @@
       history: [
         { t: Date.now(), type: "sys", text: "Приклад аукціону завантажено — відредагуйте список ігор." }
       ],
-      settings: { rewardTitle: "Обери гру", cost: 10000, rate: 200, spinDuration: 4.2 },
+      settings: { rewards: defaultRewards(), spinDuration: 4.2 },
       round: 1
     };
   }
 
   var state = null;
+
+  function migrateSettings(settings){
+    settings = settings || {};
+    if(!Array.isArray(settings.rewards) || settings.rewards.length === 0){
+      if(settings.rewardTitle || settings.cost){
+        var legacyUah = settings.rate > 0 ? Math.round((settings.cost / settings.rate) * 100) / 100 : 50;
+        settings.rewards = [
+          { id: uid(), title: settings.rewardTitle || "Обери гру — Mini", cost: settings.cost || 10000, uah: legacyUah },
+          { id: uid(), title: "Обери гру — Midi", cost: 20000, uah: 100 },
+          { id: uid(), title: "Обери гру — Maxi", cost: 50000, uah: 250 }
+        ];
+      } else {
+        settings.rewards = defaultRewards();
+      }
+    }
+    settings.rewards = settings.rewards.slice(0, 3).map(function(r, i){
+      return {
+        id: r.id || uid(),
+        title: r.title || ("Тариф " + (i + 1)),
+        cost: r.cost > 0 ? r.cost : 10000 * (i + 1),
+        uah: r.uah >= 0 ? r.uah : 50 * (i + 1)
+      };
+    });
+    while(settings.rewards.length < 3){
+      var n = settings.rewards.length;
+      settings.rewards.push({ id: uid(), title: "Тариф " + (n + 1), cost: 10000 * (n + 1), uah: 50 * (n + 1) });
+    }
+    settings.spinDuration = settings.spinDuration > 0 ? settings.spinDuration : 4.2;
+    delete settings.rewardTitle; delete settings.cost; delete settings.rate;
+    return settings;
+  }
 
   function loadState(){
     try{
@@ -376,7 +407,7 @@
       if(!raw) return defaultState();
       var parsed = JSON.parse(raw);
       if(!parsed || !Array.isArray(parsed.games)) return defaultState();
-      parsed.settings = Object.assign({ rewardTitle: "Обери гру", cost: 10000, rate: 200, spinDuration: 4.2 }, parsed.settings || {});
+      parsed.settings = migrateSettings(parsed.settings);
       return parsed;
     }catch(e){ return defaultState(); }
   }
@@ -419,10 +450,12 @@
 
   function addGame(name){
     name = name.trim();
-    if(!name) return;
-    state.games.push({ id: uid(), name: name, funded: 0, eliminated: false });
+    if(!name) return null;
+    var g = { id: uid(), name: name, funded: 0, eliminated: false };
+    state.games.push(g);
     log('sys', 'Додано гру «' + name + '»');
     saveState(); renderAll();
+    return g;
   }
 
   function removeGame(id){
@@ -488,7 +521,7 @@
           '<span class="gfund-suffix">₴</span>' +
         '</div>' +
         '<div class="gactions">' +
-          '<input type="number" class="gamt mono" data-amt="' + g.id + '" value="' + defaultRedeemUAH() + '" min="0" step="0.5" title="Сума для +/−, ₴">' +
+          '<input type="number" class="gamt mono" data-amt="' + g.id + '" value="' + firstTierUAH() + '" min="0" step="0.5" title="Сума для +/−, ₴">' +
           '<button class="btn icon sm" data-act="minus" data-id="' + g.id + '" title="Відняти суму">−</button>' +
           '<button class="btn icon sm gold" data-act="plus" data-id="' + g.id + '" title="Додати суму">+</button>' +
           '<button class="btn icon sm" data-act="del" data-id="' + g.id + '" title="Видалити">✕</button>' +
@@ -541,22 +574,53 @@
   function escapeHtml(s){ return escapeAttr(s); }
 
   // ---------- auction / settings ----------
-  function defaultRedeemUAH(){
-    return state.settings.rate > 0 ? Math.round((state.settings.cost / state.settings.rate) * 100) / 100 : 0;
+  function firstTierUAH(){
+    var t = state.settings.rewards[0];
+    return t ? t.uah : 50;
+  }
+
+  function renderTierRows(){
+    var wrap = document.getElementById('tierRows');
+    wrap.innerHTML = state.settings.rewards.map(function(t, i){
+      return '<div class="row" style="align-items:flex-end;">' +
+        '<label class="field" style="flex:2 1 150px;">Назва редімки' +
+          '<input type="text" class="tierTitle" data-idx="' + i + '" value="' + escapeAttr(t.title) + '" maxlength="60"></label>' +
+        '<label class="field" style="flex:1 1 100px;">Бали' +
+          '<input type="number" class="tierCost mono" data-idx="' + i + '" min="1" step="1" value="' + t.cost + '"></label>' +
+        '<label class="field" style="flex:1 1 90px;">Сума, ₴' +
+          '<input type="number" class="tierUah mono" data-idx="' + i + '" min="0" step="1" value="' + t.uah + '"></label>' +
+      '</div>';
+    }).join('');
+
+    wrap.querySelectorAll('.tierTitle').forEach(function(inp){
+      inp.addEventListener('change', function(){
+        var idx = +inp.dataset.idx;
+        state.settings.rewards[idx].title = inp.value.trim() || ('Тариф ' + (idx + 1));
+        saveState(); renderManualTierSelect();
+      });
+    });
+    wrap.querySelectorAll('.tierCost').forEach(function(inp){
+      inp.addEventListener('change', function(){
+        var idx = +inp.dataset.idx;
+        var v = Math.max(1, parseInt(inp.value, 10) || 1);
+        state.settings.rewards[idx].cost = v;
+        saveState();
+      });
+    });
+    wrap.querySelectorAll('.tierUah').forEach(function(inp){
+      inp.addEventListener('change', function(){
+        var idx = +inp.dataset.idx;
+        var v = Math.max(0, parseFloat(inp.value) || 0);
+        state.settings.rewards[idx].uah = Math.round(v * 100) / 100;
+        saveState(); renderManualTierSelect(); renderGameList();
+      });
+    });
   }
 
   var manualAmountDirty = false;
 
   function renderSettings(){
-    document.getElementById('cfgRewardTitle').value = state.settings.rewardTitle;
-    document.getElementById('cfgCost').value = state.settings.cost;
-    document.getElementById('cfgRate').value = state.settings.rate;
-    document.getElementById('cfgResult').value = fmtUAH(defaultRedeemUAH());
     document.getElementById('cfgSpinDuration').value = state.settings.spinDuration;
-    if(!manualAmountDirty){
-      var amountInput = document.getElementById('manualAmount');
-      if(amountInput) amountInput.value = defaultRedeemUAH();
-    }
   }
 
   function renderManualSelect(){
@@ -569,6 +633,20 @@
       sel.appendChild(opt);
     });
     if(prev && activeGames().some(function(g){return g.id===prev;})) sel.value = prev;
+  }
+
+  function renderManualTierSelect(){
+    var sel = document.getElementById('manualTier');
+    var prev = sel.value;
+    sel.innerHTML = state.settings.rewards.map(function(t, i){
+      return '<option value="' + i + '">' + escapeHtml(t.title) + ' — ' + t.cost.toLocaleString('uk-UA') + ' балів → ' + fmtUAH(t.uah) + '</option>';
+    }).join('');
+    sel.value = (prev !== '' && +prev < state.settings.rewards.length) ? prev : '0';
+    if(!manualAmountDirty){
+      var amountInput = document.getElementById('manualAmount');
+      var tier = state.settings.rewards[+sel.value];
+      if(amountInput && tier) amountInput.value = tier.uah;
+    }
   }
 
   function manualRedeem(){
@@ -584,7 +662,7 @@
     toast('Зараховано ' + fmtUAH(uah));
     document.getElementById('manualViewer').value = '';
     manualAmountDirty = false;
-    amountInput.value = defaultRedeemUAH();
+    renderManualTierSelect();
   }
 
   // ---------- wheel ----------
@@ -848,12 +926,20 @@
 
   var twQueue = [];
 
-  function twHandleRedemption(evt){
-    var titleCfg = state.settings.rewardTitle.trim().toLowerCase();
-    var title = (evt.reward && evt.reward.title || '').toLowerCase();
+  function findTier(evt){
+    var title = (evt.reward && evt.reward.title || '').trim().toLowerCase();
     var cost = evt.reward && evt.reward.cost;
-    if(titleCfg && title.indexOf(titleCfg) === -1) return;
-    if(state.settings.cost && cost !== state.settings.cost) return;
+    return state.settings.rewards.find(function(t){
+      if(t.cost !== cost) return false;
+      var cfgTitle = (t.title || '').trim().toLowerCase();
+      if(cfgTitle && title.indexOf(cfgTitle) === -1 && cfgTitle.indexOf(title) === -1) return false;
+      return true;
+    });
+  }
+
+  function twHandleRedemption(evt){
+    var tier = findTier(evt);
+    if(!tier) return;
 
     var input = (evt.user_input || '').trim();
     var match = state.games.find(function(g){
@@ -862,13 +948,11 @@
       return !g.eliminated && input && g.name.toLowerCase().indexOf(input.toLowerCase()) !== -1;
     });
 
-    var uah = state.settings.rate > 0 ? Math.round((state.settings.cost / state.settings.rate) * 100) / 100 : 0;
-
     if(match){
-      fundGame(match.id, uah, evt.user_name + ' (Twitch)');
+      fundGame(match.id, tier.uah, evt.user_name + ' (Twitch, ' + tier.title + ')');
       toast(evt.user_name + ' → ' + match.name);
     } else {
-      twQueue.push({ id: uid(), user: evt.user_name, input: input, uah: uah });
+      twQueue.push({ id: uid(), user: evt.user_name, input: input, uah: tier.uah, tier: tier.title });
       renderTwQueue();
       toast('Новий редемпшн від ' + evt.user_name + ' — потребує призначення');
     }
@@ -881,10 +965,16 @@
     twQueue.forEach(function(q){
       var row = document.createElement('div');
       row.className = 'queue-item';
-      var opts = activeGames().map(function(g){ return '<option value="' + g.id + '">' + escapeHtml(g.name) + '</option>'; }).join('');
-      row.innerHTML = '<strong>' + escapeHtml(q.user) + '</strong> ввів «' + escapeHtml(q.input || '—') + '» · ' + fmtUAH(q.uah)
-        + ' <select data-qid="' + q.id + '">' + opts + '</select>'
-        + ' <button class="btn sm gold" data-assign="' + q.id + '">Зарахувати</button>';
+      var opts = '<option value="">— обрати гру —</option>' +
+        activeGames().map(function(g){ return '<option value="' + g.id + '">' + escapeHtml(g.name) + '</option>'; }).join('');
+      row.innerHTML =
+        '<span class="queue-info"><strong>' + escapeHtml(q.user) + '</strong>' + (q.tier ? ' (' + escapeHtml(q.tier) + ')' : '')
+          + ' ввів «' + escapeHtml(q.input || '—') + '» · ' + fmtUAH(q.uah) + '</span>'
+        + '<span class="queue-controls">'
+          + '<select data-qid="' + q.id + '">' + opts + '</select>'
+          + '<button class="btn sm gold" data-assign="' + q.id + '">Зарахувати обраній</button>'
+          + (q.input ? '<button class="btn sm" data-newgame="' + q.id + '">+ Створити гру «' + escapeHtml(q.input) + '»</button>' : '')
+        + '</span>';
       wrap.appendChild(row);
     });
     wrap.querySelectorAll('[data-assign]').forEach(function(btn){
@@ -892,11 +982,24 @@
         var qid = btn.dataset.assign;
         var q = twQueue.find(function(x){ return x.id === qid; });
         var sel = wrap.querySelector('select[data-qid="' + qid + '"]');
-        if(q && sel && sel.value){
+        if(!sel || !sel.value){ toast('Оберіть гру зі списку'); return; }
+        if(q){
           fundGame(sel.value, q.uah, q.user + ' (Twitch)');
           twQueue = twQueue.filter(function(x){ return x.id !== qid; });
           renderTwQueue();
         }
+      });
+    });
+    wrap.querySelectorAll('[data-newgame]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var qid = btn.dataset.newgame;
+        var q = twQueue.find(function(x){ return x.id === qid; });
+        if(!q || !q.input) return;
+        var created = addGame(q.input);
+        if(!created) return;
+        fundGame(created.id, q.uah, q.user + ' (Twitch, нова гра)');
+        twQueue = twQueue.filter(function(x){ return x.id !== qid; });
+        renderTwQueue();
       });
     });
   }
@@ -913,7 +1016,9 @@
     renderTopStats();
     renderGameList();
     renderSettings();
+    renderTierRows();
     renderManualSelect();
+    renderManualTierSelect();
     renderHistory();
     renderElimTrack();
     drawWheel();
@@ -944,19 +1049,17 @@
       setTimeout(function(){ btn.dataset.confirm=''; btn.textContent='Скинути весь аукціон'; }, 3000);
     });
 
-    ['cfgRewardTitle','cfgCost','cfgRate'].forEach(function(id){
-      document.getElementById(id).addEventListener('change', function(){
-        state.settings.rewardTitle = document.getElementById('cfgRewardTitle').value || 'Обери гру';
-        state.settings.cost = Math.max(1, parseInt(document.getElementById('cfgCost').value,10) || 10000);
-        state.settings.rate = Math.max(1, parseInt(document.getElementById('cfgRate').value,10) || 200);
-        saveState(); renderSettings();
-      });
-    });
-
     document.getElementById('cfgSpinDuration').addEventListener('change', function(){
       var v = parseFloat(this.value);
       state.settings.spinDuration = isFinite(v) ? Math.min(15, Math.max(1, v)) : 4.2;
       saveState(); renderSettings();
+    });
+
+    document.getElementById('manualTier').addEventListener('change', function(){
+      manualAmountDirty = false;
+      var tier = state.settings.rewards[+this.value];
+      var amountInput = document.getElementById('manualAmount');
+      if(tier && amountInput) amountInput.value = tier.uah;
     });
 
     document.getElementById('manualRedeemBtn').addEventListener('click', manualRedeem);
