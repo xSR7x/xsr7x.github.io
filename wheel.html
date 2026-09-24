@@ -99,6 +99,7 @@
     border:1px solid var(--line); background:var(--surface-2); color:var(--text);
     border-radius:10px; padding:10px 16px; font-weight:700; font-size:13px; cursor:pointer;
     transition:transform .1s, background .15s, border-color .15s;
+    text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:6px;
   }
   .btn:hover{ background:var(--surface-3); }
   .btn:active{ transform:scale(.97); }
@@ -198,7 +199,48 @@
   }
   .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
 
-  @media (prefers-reduced-motion: reduce){ *{ transition:none !important; } }
+  /* overlay / stream screen */
+  .overlay-root{
+    position:fixed; inset:0; z-index:100; overflow:auto;
+    background:
+      radial-gradient(circle at 15% -10%, #2a1a45 0%, transparent 45%),
+      radial-gradient(circle at 100% 0%, #3a1440 0%, transparent 40%),
+      var(--bg);
+    padding:32px clamp(20px, 4vw, 64px);
+    padding-block:calc(32px + env(safe-area-inset-top, 0px)) calc(32px + env(safe-area-inset-bottom, 0px));
+    display:flex; flex-direction:column; gap:24px;
+    color:var(--text);
+  }
+  .ov-top{ display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
+  .ov-logo{ font-family:var(--font-display); font-size:clamp(20px,2.4vw,30px); }
+  .ov-stats{ margin-left:auto; display:flex; gap:16px; flex-wrap:wrap; }
+  .ov-stat{ background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:10px 18px; text-align:center; }
+  .ov-l{ font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); }
+  .ov-v{ font-size:clamp(18px,2vw,26px); font-weight:700; color:var(--gold); }
+  .ov-winner{ text-align:center; padding:22px; border-radius:20px; background:linear-gradient(135deg, rgba(255,182,72,.18), rgba(168,85,247,.18)); border:1px solid var(--gold); }
+  .ov-winner-tag{ font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--gold); }
+  .ov-winner-name{ font-family:var(--font-display); font-size:clamp(28px,5vw,52px); margin-top:6px; text-wrap:balance; }
+  .ov-list{ display:flex; flex-direction:column; gap:10px; }
+  .ov-row{ display:grid; grid-template-columns:14px minmax(120px,240px) 1fr auto; align-items:center; gap:14px; background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:12px 18px; }
+  .ov-row.ov-out{ opacity:.4; }
+  .ov-dot{ width:14px; height:14px; border-radius:50%; }
+  .ov-name{ font-weight:700; font-size:clamp(15px,1.6vw,20px); }
+  .ov-tag{ font-size:11px; color:var(--danger); border:1px solid var(--danger); border-radius:20px; padding:1px 8px; margin-left:6px; }
+  .ov-bar-wrap{ height:14px; background:var(--surface-2); border-radius:8px; overflow:hidden; }
+  .ov-bar{ height:100%; border-radius:8px; transition:width .6s ease; }
+  .ov-amt{ font-family:var(--font-mono); font-weight:700; font-size:clamp(16px,1.8vw,22px); color:var(--gold); white-space:nowrap; }
+  .ov-live{ margin-top:auto; display:flex; align-items:center; gap:8px; color:var(--muted); font-size:12px; }
+  .ov-live-dot{ width:8px; height:8px; border-radius:50%; background:var(--success); box-shadow:0 0 8px var(--success); animation:ovPulse 2s infinite; }
+  @keyframes ovPulse{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
+  @media (max-width:480px){
+    .ov-row{ grid-template-columns:14px 1fr; grid-template-areas:"dot name" "bar bar" "amt amt"; row-gap:6px; }
+    .ov-dot{ grid-area:dot; }
+    .ov-name{ grid-area:name; }
+    .ov-bar-wrap{ grid-area:bar; }
+    .ov-amt{ grid-area:amt; justify-self:end; }
+  }
+
+  @media (prefers-reduced-motion: reduce){ *{ transition:none !important; } .ov-live-dot{ animation:none; } }
 </style>
 
 <div class="wrap">
@@ -214,6 +256,7 @@
       <div class="stat"><div class="l">У грі</div><div class="v acc mono" id="statActive">0</div></div>
       <div class="stat"><div class="l">Раунд</div><div class="v mono" id="statRound">1</div></div>
     </div>
+    <a class="btn primary sm" id="overlayLink" href="?overlay=1" target="_blank" rel="noopener">🖥️ Екран для стріму</a>
   </header>
 
   <nav class="tabs" role="tablist">
@@ -271,6 +314,39 @@
       <div class="hint">Сума підставляється з обраного тарифу, але її можна вручну змінити для довільного доната.</div>
     </div>
 
+    <div class="card">
+      <h2>Черга без призначення <span class="mono" id="donationQueueCount" style="color:var(--muted); font-weight:500;"></span></h2>
+      <div class="hint">Сюди падають донати з Twitch і Monobank, чий текст не вдалось автоматично зіставити з жодною грою зі списку. Це місце безпечно показувати на стрімі — тут немає жодних токенів чи ключів.</div>
+      <div id="donationQueueWrap" style="margin-top:12px;">
+        <div id="donationQueueList" style="display:flex; flex-direction:column; gap:6px;"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Донати з Monobank (Excel/CSV)</h2>
+      <div class="hint">
+        Завантажте файл виписки банки чи картки з Monobank (кнопка «Виписка» у застосунку або вебкабінеті — .xlsx, .xls або .csv). Оберіть колонки суми й коментаря та імпортуйте: інструмент сам розпізнає гру за текстом коментаря, а повторний імпорт того самого файлу не задвоїть уже враховані операції.
+      </div>
+      <div class="row" style="margin-top:12px; align-items:center;">
+        <input type="file" id="monoFile" accept=".xlsx,.xls,.csv">
+      </div>
+      <div id="monoMapping" style="display:none; margin-top:12px;">
+        <div class="row" style="align-items:flex-end;">
+          <label class="field" style="flex:1 1 160px;">Колонка суми
+            <select id="monoColAmount"></select>
+          </label>
+          <label class="field" style="flex:1 1 160px;">Колонка коментаря/опису
+            <select id="monoColDesc"></select>
+          </label>
+          <label class="field" style="flex:1 1 160px;">Колонка дати (необов'язково)
+            <select id="monoColDate"></select>
+          </label>
+          <button class="btn primary" id="monoImportBtn" style="flex:none;">Імпортувати</button>
+        </div>
+      </div>
+      <div class="hint" id="monoImportStatus" style="margin-top:8px;"></div>
+    </div>
+
     <details class="adv" id="twitchPanel">
       <summary>⚡ Пряме підключення до Twitch (експериментально)</summary>
       <div class="adv-body">
@@ -278,7 +354,7 @@
           Слухає редемпшни Channel Points у реальному часі через Twitch EventSub і сам зараховує ставки, коли назва й вартість редемпшна збігаються з одним із тарифів вище. Працює повністю в браузері, бекенд не потрібен — але потребує власного застосунку на <span class="mono">dev.twitch.tv</span> з Redirect URI, що збігається з адресою сторінки.
         </div>
         <div class="hint" style="color:var(--gold);">
-          У вбудованому перегляді артефакту OAuth-редірект і WebSocket можуть блокуватись пісочницею. Якщо не спрацює тут — збережіть HTML-файл і захостіть окремо (GitHub Pages, будь-який статичний хостинг), зареєструвавши ту адресу як Redirect URI.
+          У вбудованому перегляді артефакту OAuth-редірект і WebSocket можуть блокуватись пісочницею. Якщо не спрацює тут — збережіть HTML-файл і захостіть окремо (GitHub Pages, будь-який статичний хостинг), зареєструвавши ту адресу як Redirect URI. Це поле з Client ID ніколи не показуйте на стрімі — черга непризначених донатів вище повністю відокремлена від нього.
         </div>
         <div class="row">
           <label class="field" style="flex:2 1 220px;">Twitch Client ID
@@ -290,10 +366,6 @@
           </div>
         </div>
         <div class="status-line"><span class="status-dot off" id="twStatusDot"></span><span id="twStatusText">Не підключено</span></div>
-        <div id="twQueueWrap" style="display:none;">
-          <div class="hint" style="margin-bottom:6px;">Редемпшни, які не вдалось автоматично зіставити з грою — призначте наявній грі або створіть нову за назвою, яку ввів глядач:</div>
-          <div id="twQueue" style="display:flex; flex-direction:column; gap:6px;"></div>
-        </div>
       </div>
     </details>
   </section>
@@ -333,8 +405,23 @@
 
 </div>
 
+<div id="overlayView" class="overlay-root" hidden>
+  <div class="ov-top">
+    <div class="ov-logo">🎡 Колесо Ставок</div>
+    <div class="ov-stats">
+      <div class="ov-stat"><div class="ov-l">Банк</div><div class="ov-v mono" id="ovPool">0 ₴</div></div>
+      <div class="ov-stat"><div class="ov-l">У грі</div><div class="ov-v mono" id="ovActiveCount">0</div></div>
+      <div class="ov-stat"><div class="ov-l">Раунд</div><div class="ov-v mono" id="ovRound">1</div></div>
+    </div>
+  </div>
+  <div id="ovWinner" class="ov-winner" hidden></div>
+  <div id="ovList" class="ov-list"></div>
+  <div class="ov-live"><span class="ov-live-dot"></span> Оновлюється наживо</div>
+</div>
+
 <div class="toast" id="toast"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 (function(){
   "use strict";
@@ -346,9 +433,9 @@
 
   function defaultRewards(){
     return [
-      { id: uid(), title: "Обери гру — Mini", cost: 10000, uah: 50 },
-      { id: uid(), title: "Обери гру — Midi", cost: 20000, uah: 100 },
-      { id: uid(), title: "Обери гру — Maxi", cost: 50000, uah: 250 }
+      { id: uid(), title: "Обери гру 2к", cost: 2000, uah: 10 },
+      { id: uid(), title: "Обери гру 10к", cost: 10000, uah: 50 },
+      { id: uid(), title: "Обери гру 50к", cost: 50000, uah: 250 }
     ];
   }
 
@@ -364,7 +451,9 @@
         { t: Date.now(), type: "sys", text: "Приклад аукціону завантажено — відредагуйте список ігор." }
       ],
       settings: { rewards: defaultRewards(), spinDuration: 4.2 },
-      round: 1
+      round: 1,
+      donationQueue: [],
+      importedTx: []
     };
   }
 
@@ -408,6 +497,8 @@
       var parsed = JSON.parse(raw);
       if(!parsed || !Array.isArray(parsed.games)) return defaultState();
       parsed.settings = migrateSettings(parsed.settings);
+      parsed.donationQueue = Array.isArray(parsed.donationQueue) ? parsed.donationQueue : [];
+      parsed.importedTx = Array.isArray(parsed.importedTx) ? parsed.importedTx : [];
       return parsed;
     }catch(e){ return defaultState(); }
   }
@@ -665,6 +756,109 @@
     renderManualTierSelect();
   }
 
+  // ---------- monobank excel/csv import ----------
+  var monoParsedRows = null;
+  var monoHeaderRowIdx = 0;
+
+  function parseMonoAmount(v){
+    if(typeof v === 'number') return Math.round(v * 100) / 100;
+    var s = String(v == null ? '' : v).replace(/\s/g, '').replace(',', '.').replace(/[^\d.\-]/g, '');
+    var n = parseFloat(s);
+    return isFinite(n) ? Math.round(n * 100) / 100 : NaN;
+  }
+
+  function detectMonoColumns(headerRow){
+    var idx = { amount: -1, desc: -1, date: -1 };
+    var bestAmountScore = -1;
+    (headerRow || []).forEach(function(h, i){
+      var t = String(h || '').toLowerCase();
+      if(t.indexOf('сум') !== -1){
+        var score = 1;
+        if(t.indexOf('залиш') !== -1 || t.indexOf('коміс') !== -1 || t.indexOf('кешбек') !== -1 || t.indexOf('кешбэк') !== -1) score = 0;
+        if(t.indexOf('картк') !== -1 || t.indexOf('uah') !== -1 || t.indexOf('грн') !== -1) score = 2;
+        if(score > bestAmountScore){ bestAmountScore = score; idx.amount = i; }
+      }
+      if(idx.desc === -1 && (t.indexOf('опис') !== -1 || t.indexOf('коментар') !== -1 || t.indexOf('деталі') !== -1 || t.indexOf('признач') !== -1)) idx.desc = i;
+      if(idx.date === -1 && (t.indexOf('дата') !== -1 || t.indexOf('час') !== -1)) idx.date = i;
+    });
+    return idx;
+  }
+
+  function fillMonoColSelect(id, header, guessIdx, optional){
+    var sel = document.getElementById(id);
+    sel.innerHTML = (optional ? '<option value="-1">— немає —</option>' : '') +
+      header.map(function(h, i){ return '<option value="' + i + '">' + escapeHtml(String(h || ('Колонка ' + (i + 1)))) + '</option>'; }).join('');
+    sel.value = (guessIdx !== undefined && guessIdx !== -1) ? String(guessIdx) : (optional ? '-1' : '0');
+  }
+
+  function handleMonoFile(){
+    var input = document.getElementById('monoFile');
+    var file = input.files && input.files[0];
+    var statusEl = document.getElementById('monoImportStatus');
+    document.getElementById('monoMapping').style.display = 'none';
+    monoParsedRows = null;
+    statusEl.textContent = '';
+    if(!file) return;
+    if(typeof XLSX === 'undefined'){ statusEl.textContent = 'Не вдалось завантажити бібліотеку для читання файлів.'; return; }
+    var reader = new FileReader();
+    reader.onload = function(e){
+      try{
+        var wb = XLSX.read(e.target.result, { type: 'array' });
+        var sheet = wb.Sheets[wb.SheetNames[0]];
+        var rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: '' });
+        var headerRowIdx = 0;
+        for(var i = 0; i < Math.min(rows.length, 6); i++){
+          var joined = (rows[i] || []).join(' ').toLowerCase();
+          if(joined.indexOf('сум') !== -1){ headerRowIdx = i; break; }
+        }
+        var header = rows[headerRowIdx] || [];
+        if(rows.length <= headerRowIdx + 1){ statusEl.textContent = 'У файлі не знайдено рядків з операціями.'; return; }
+        monoParsedRows = rows; monoHeaderRowIdx = headerRowIdx;
+        var guess = detectMonoColumns(header);
+        fillMonoColSelect('monoColAmount', header, guess.amount);
+        fillMonoColSelect('monoColDesc', header, guess.desc);
+        fillMonoColSelect('monoColDate', header, guess.date, true);
+        document.getElementById('monoMapping').style.display = 'block';
+        statusEl.textContent = 'Знайдено рядків: ' + (rows.length - headerRowIdx - 1) + '. Перевірте колонки й тисніть «Імпортувати».';
+      }catch(err){
+        statusEl.textContent = 'Не вдалось прочитати файл: ' + (err && err.message ? err.message : err);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function importMonoRows(){
+    var statusEl = document.getElementById('monoImportStatus');
+    if(!monoParsedRows){ statusEl.textContent = 'Спочатку оберіть файл.'; return; }
+    var amountIdx = +document.getElementById('monoColAmount').value;
+    var descIdx = +document.getElementById('monoColDesc').value;
+    var dateIdx = +document.getElementById('monoColDate').value;
+    var imported = 0, skipped = 0;
+    var queuedBefore = state.donationQueue.length;
+    for(var r = monoHeaderRowIdx + 1; r < monoParsedRows.length; r++){
+      var row = monoParsedRows[r];
+      if(!row || row.length === 0) continue;
+      var amount = parseMonoAmount(row[amountIdx]);
+      if(!isFinite(amount) || amount <= 0) continue;
+      var desc = descIdx !== -1 ? String(row[descIdx] || '') : '';
+      var dateStr = dateIdx !== -1 ? String(row[dateIdx] || '') : '';
+      var key = dateStr + '|' + amount + '|' + desc;
+      if(state.importedTx.indexOf(key) !== -1){ skipped++; continue; }
+      state.importedTx.push(key);
+      imported++;
+      processDonation({ source: 'mono', label: 'Monobank' + (dateStr ? (' · ' + dateStr) : ''), uah: amount, text: desc });
+    }
+    if(state.importedTx.length > 4000) state.importedTx = state.importedTx.slice(-4000);
+    saveState();
+    var queuedNow = state.donationQueue.length - queuedBefore;
+    statusEl.textContent = 'Готово: нових операцій — ' + imported +
+      (skipped ? (', вже враховано раніше — ' + skipped) : '') +
+      (queuedNow > 0 ? (', потребують призначення — ' + queuedNow) : '') + '.';
+    document.getElementById('monoFile').value = '';
+    document.getElementById('monoMapping').style.display = 'none';
+    monoParsedRows = null;
+  }
+
   // ---------- wheel ----------
   var rotation = 0;
   var spinning = false;
@@ -853,7 +1047,6 @@
     twitch = { token: null, login: null, broadcasterId: null, ws: null, sessionId: null };
     document.getElementById('twConnectBtn').style.display = '';
     document.getElementById('twDisconnectBtn').style.display = 'none';
-    document.getElementById('twQueueWrap').style.display = 'none';
     twSetStatus('Не підключено', null);
   }
 
@@ -918,13 +1111,32 @@
     }).then(function(r){
       if(!r.ok) throw new Error('subscribe failed');
       twSetStatus('Підключено як ' + twitch.login + ' — слухаємо редемпшни', true);
-      document.getElementById('twQueueWrap').style.display = '';
     }).catch(function(){
       twSetStatus('Не вдалось оформити підписку EventSub.', false);
     });
   }
 
-  var twQueue = [];
+  // ---------- shared donation matching (Twitch + Monobank) ----------
+  function matchGameByText(text){
+    var t = (text || '').trim().toLowerCase();
+    if(!t) return null;
+    return activeGames().find(function(g){ return g.name.toLowerCase() === t; })
+      || activeGames().find(function(g){ return t.indexOf(g.name.toLowerCase()) !== -1; })
+      || activeGames().find(function(g){ return g.name.toLowerCase().indexOf(t) !== -1; });
+  }
+
+  function processDonation(opts){
+    var match = matchGameByText(opts.text);
+    if(match){
+      fundGame(match.id, opts.uah, opts.label);
+      toast(opts.label + ' → ' + match.name);
+      return true;
+    }
+    state.donationQueue.push({ id: uid(), source: opts.source, label: opts.label, input: (opts.text || '').trim(), uah: opts.uah });
+    saveState(); renderDonationQueue();
+    toast('Новий донат — потребує призначення');
+    return false;
+  }
 
   function findTier(evt){
     var title = (evt.reward && evt.reward.title || '').trim().toLowerCase();
@@ -940,35 +1152,22 @@
   function twHandleRedemption(evt){
     var tier = findTier(evt);
     if(!tier) return;
-
     var input = (evt.user_input || '').trim();
-    var match = state.games.find(function(g){
-      return !g.eliminated && input && g.name.toLowerCase() === input.toLowerCase();
-    }) || state.games.find(function(g){
-      return !g.eliminated && input && g.name.toLowerCase().indexOf(input.toLowerCase()) !== -1;
-    });
-
-    if(match){
-      fundGame(match.id, tier.uah, evt.user_name + ' (Twitch, ' + tier.title + ')');
-      toast(evt.user_name + ' → ' + match.name);
-    } else {
-      twQueue.push({ id: uid(), user: evt.user_name, input: input, uah: tier.uah, tier: tier.title });
-      renderTwQueue();
-      toast('Новий редемпшн від ' + evt.user_name + ' — потребує призначення');
-    }
+    processDonation({ source: 'twitch', label: evt.user_name + ' (Twitch, ' + tier.title + ')', uah: tier.uah, text: input });
   }
 
-  function renderTwQueue(){
-    var wrap = document.getElementById('twQueue');
-    if(twQueue.length === 0){ wrap.innerHTML = '<div class="hint">Черга порожня.</div>'; return; }
+  function renderDonationQueue(){
+    var wrap = document.getElementById('donationQueueList');
+    document.getElementById('donationQueueCount').textContent = state.donationQueue.length ? '(' + state.donationQueue.length + ')' : '';
+    if(state.donationQueue.length === 0){ wrap.innerHTML = '<div class="hint">Черга порожня.</div>'; return; }
     wrap.innerHTML = '';
-    twQueue.forEach(function(q){
+    state.donationQueue.forEach(function(q){
       var row = document.createElement('div');
       row.className = 'queue-item';
       var opts = '<option value="">— обрати гру —</option>' +
         activeGames().map(function(g){ return '<option value="' + g.id + '">' + escapeHtml(g.name) + '</option>'; }).join('');
       row.innerHTML =
-        '<span class="queue-info"><strong>' + escapeHtml(q.user) + '</strong>' + (q.tier ? ' (' + escapeHtml(q.tier) + ')' : '')
+        '<span class="queue-info"><strong>' + escapeHtml(q.label) + '</strong>'
           + ' ввів «' + escapeHtml(q.input || '—') + '» · ' + fmtUAH(q.uah) + '</span>'
         + '<span class="queue-controls">'
           + '<select data-qid="' + q.id + '">' + opts + '</select>'
@@ -980,26 +1179,26 @@
     wrap.querySelectorAll('[data-assign]').forEach(function(btn){
       btn.addEventListener('click', function(){
         var qid = btn.dataset.assign;
-        var q = twQueue.find(function(x){ return x.id === qid; });
+        var q = state.donationQueue.find(function(x){ return x.id === qid; });
         var sel = wrap.querySelector('select[data-qid="' + qid + '"]');
         if(!sel || !sel.value){ toast('Оберіть гру зі списку'); return; }
         if(q){
-          fundGame(sel.value, q.uah, q.user + ' (Twitch)');
-          twQueue = twQueue.filter(function(x){ return x.id !== qid; });
-          renderTwQueue();
+          fundGame(sel.value, q.uah, q.label);
+          state.donationQueue = state.donationQueue.filter(function(x){ return x.id !== qid; });
+          saveState(); renderDonationQueue();
         }
       });
     });
     wrap.querySelectorAll('[data-newgame]').forEach(function(btn){
       btn.addEventListener('click', function(){
         var qid = btn.dataset.newgame;
-        var q = twQueue.find(function(x){ return x.id === qid; });
+        var q = state.donationQueue.find(function(x){ return x.id === qid; });
         if(!q || !q.input) return;
         var created = addGame(q.input);
         if(!created) return;
-        fundGame(created.id, q.uah, q.user + ' (Twitch, нова гра)');
-        twQueue = twQueue.filter(function(x){ return x.id !== qid; });
-        renderTwQueue();
+        fundGame(created.id, q.uah, q.label);
+        state.donationQueue = state.donationQueue.filter(function(x){ return x.id !== qid; });
+        saveState(); renderDonationQueue();
       });
     });
   }
@@ -1019,6 +1218,7 @@
     renderTierRows();
     renderManualSelect();
     renderManualTierSelect();
+    renderDonationQueue();
     renderHistory();
     renderElimTrack();
     drawWheel();
@@ -1065,6 +1265,9 @@
     document.getElementById('manualRedeemBtn').addEventListener('click', manualRedeem);
     document.getElementById('manualAmount').addEventListener('input', function(){ manualAmountDirty = true; });
 
+    document.getElementById('monoFile').addEventListener('change', handleMonoFile);
+    document.getElementById('monoImportBtn').addEventListener('click', importMonoRows);
+
     document.getElementById('spinBtn').addEventListener('click', spin);
     document.getElementById('newRoundBtn').addEventListener('click', newRound);
 
@@ -1089,7 +1292,6 @@
 
     bindStaticEvents();
     renderAll();
-    renderTwQueue();
 
     var token = twParseHash();
     if(token) twAfterToken(token);
@@ -1101,16 +1303,76 @@
     }catch(e){}
   }
 
-  try{
-    if(window.claude && window.claude.hot && window.claude.hot.ready){
-      window.claude.hot.ready(function(data){
-        boot();
-        if(data && Array.isArray(data.games)) { state = data; saveState(); renderAll(); }
-      });
+  // ---------- overlay / stream screen ----------
+  function isOverlayMode(){
+    return /(^|[?&])overlay(=1)?($|&)/.test(location.search) || location.hash === '#overlay';
+  }
+
+  function hueForId(id){
+    var h = 0;
+    for(var i = 0; i < id.length; i++){ h = (h * 31 + id.charCodeAt(i)) >>> 0; }
+    return PALETTE_H[h % PALETTE_H.length];
+  }
+
+  function renderOverlay(){
+    var s = loadState();
+    var pool = s.games.reduce(function(a, g){ return a + g.funded; }, 0);
+    var maxFunded = Math.max(1, Math.max.apply(null, s.games.map(function(g){ return g.funded; }).concat([0])));
+    var activeList = s.games.filter(function(g){ return !g.eliminated; }).sort(function(a, b){ return b.funded - a.funded; });
+    var eliminatedList = s.games.filter(function(g){ return g.eliminated; });
+    var isWinner = activeList.length === 1 && s.games.length > 1;
+
+    document.getElementById('ovPool').textContent = fmtUAH(pool);
+    document.getElementById('ovRound').textContent = s.round;
+    document.getElementById('ovActiveCount').textContent = activeList.length + ' / ' + s.games.length;
+
+    var winnerEl = document.getElementById('ovWinner');
+    if(isWinner){
+      winnerEl.hidden = false;
+      winnerEl.innerHTML = '<div class="ov-winner-tag">Переможець аукціону</div><div class="ov-winner-name">🏆 ' + escapeHtml(activeList[0].name) + '</div>';
     } else {
-      boot();
+      winnerEl.hidden = true;
     }
-  }catch(e){ boot(); }
+
+    var listEl = document.getElementById('ovList');
+    if(s.games.length === 0){
+      listEl.innerHTML = '<div class="empty">Список ігор порожній.</div>';
+      return;
+    }
+    listEl.innerHTML = activeList.concat(eliminatedList).map(function(g){
+      var hue = hueForId(g.id);
+      var pct = Math.round(100 * g.funded / maxFunded);
+      return '<div class="ov-row' + (g.eliminated ? ' ov-out' : '') + '">' +
+        '<span class="ov-dot" style="background:hsl(' + hue + ' 70% 55%)"></span>' +
+        '<span class="ov-name">' + escapeHtml(g.name) + (g.eliminated ? ' <span class="ov-tag">вибула</span>' : '') + '</span>' +
+        '<span class="ov-bar-wrap"><span class="ov-bar" style="width:' + pct + '%; background:hsl(' + hue + ' 70% 55%)"></span></span>' +
+        '<span class="ov-amt">' + fmtUAH(g.funded) + '</span>' +
+      '</div>';
+    }).join('');
+  }
+
+  function bootOverlay(){
+    document.querySelector('.wrap').style.display = 'none';
+    document.getElementById('overlayView').hidden = false;
+    renderOverlay();
+    window.addEventListener('storage', function(e){ if(!e.key || e.key === STORAGE_KEY) renderOverlay(); });
+    setInterval(renderOverlay, 2000);
+  }
+
+  if(isOverlayMode()){
+    bootOverlay();
+  } else {
+    try{
+      if(window.claude && window.claude.hot && window.claude.hot.ready){
+        window.claude.hot.ready(function(data){
+          boot();
+          if(data && Array.isArray(data.games)) { state = data; saveState(); renderAll(); }
+        });
+      } else {
+        boot();
+      }
+    }catch(e){ boot(); }
+  }
 
 })();
 </script>
