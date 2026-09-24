@@ -1,0 +1,1015 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Колесо Ставок</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Manrope:wght@400;500;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap');
+
+  :root{
+    --bg:#0c0a13;
+    --bg-grid:#141020;
+    --surface:#181423;
+    --surface-2:#221c31;
+    --surface-3:#2b2340;
+    --line:#332a49;
+    --text:#f2eef9;
+    --muted:#9c93b5;
+    --accent:#a855f7;
+    --accent-2:#7c3aed;
+    --gold:#ffb648;
+    --danger:#ff5c7a;
+    --success:#3ee6a8;
+    --font-display:'Unbounded', 'Arial Black', sans-serif;
+    --font-body:'Manrope', system-ui, sans-serif;
+    --font-mono:'IBM Plex Mono', 'Consolas', monospace;
+  }
+
+  *{ box-sizing:border-box; }
+  body{
+    background:
+      radial-gradient(circle at 15% -10%, #2a1a45 0%, transparent 45%),
+      radial-gradient(circle at 100% 0%, #3a1440 0%, transparent 40%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--font-body);
+    padding-inline:16px;
+    padding-block:20px 48px;
+    min-height:100%;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{ font-family:var(--font-display); margin:0; text-wrap:balance; }
+  button{ font-family:var(--font-body); }
+  .mono{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
+  ::selection{ background:var(--accent-2); color:#fff; }
+  *:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; border-radius:4px; }
+
+  .wrap{ max-width:900px; margin-inline:auto; display:flex; flex-direction:column; gap:18px; }
+
+  /* header */
+  .head{
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    background:linear-gradient(135deg, var(--surface-2), var(--surface));
+    border:1px solid var(--line); border-radius:18px; padding:16px 20px;
+  }
+  .logo{
+    width:46px; height:46px; border-radius:12px; flex:none;
+    background:conic-gradient(from 0deg, var(--accent), var(--gold), var(--danger), var(--success), var(--accent));
+    display:flex; align-items:center; justify-content:center; font-size:22px;
+    box-shadow:0 0 0 1px var(--line), 0 6px 18px -6px rgba(168,85,247,.6);
+  }
+  .head h1{ font-size:19px; letter-spacing:.2px; }
+  .head .sub{ color:var(--muted); font-size:12.5px; margin-top:2px; }
+  .head-stats{ margin-left:auto; display:flex; gap:10px; flex-wrap:wrap; }
+  .stat{
+    background:var(--surface); border:1px solid var(--line); border-radius:12px;
+    padding:8px 14px; min-width:96px;
+  }
+  .stat .l{ font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
+  .stat .v{ font-size:18px; font-weight:600; margin-top:2px; }
+  .stat .v.gold{ color:var(--gold); }
+  .stat .v.acc{ color:var(--accent); }
+
+  /* tabs */
+  .tabs{ display:flex; gap:6px; background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:5px; overflow-x:auto; }
+  .tab{
+    flex:1 1 auto; white-space:nowrap; text-align:center; padding:10px 14px; border-radius:10px;
+    background:transparent; border:none; color:var(--muted); font-weight:700; font-size:13px; cursor:pointer;
+    transition:background .15s,color .15s;
+  }
+  .tab[aria-selected="true"]{ background:var(--surface-3); color:var(--text); box-shadow:inset 0 0 0 1px var(--line); }
+  .tab:hover{ color:var(--text); }
+
+  .panel{ display:none; flex-direction:column; gap:16px; }
+  .panel.active{ display:flex; }
+
+  .card{ background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:18px; }
+  .card h2{ font-size:14px; letter-spacing:.02em; display:flex; align-items:center; gap:8px; }
+  .card .hint{ color:var(--muted); font-size:12.5px; margin-top:4px; line-height:1.5; }
+
+  .row{ display:flex; gap:10px; flex-wrap:wrap; }
+
+  input[type=text], input[type=number], select{
+    background:var(--surface-2); border:1px solid var(--line); color:var(--text);
+    border-radius:10px; padding:10px 12px; font-size:13.5px; font-family:var(--font-body);
+    min-width:0;
+  }
+  input[type=text]:focus, input[type=number]:focus, select:focus{ border-color:var(--accent); }
+  label.field{ display:flex; flex-direction:column; gap:5px; font-size:11.5px; color:var(--muted); flex:1 1 160px; }
+  label.field input, label.field select{ color:var(--text); }
+
+  .btn{
+    border:1px solid var(--line); background:var(--surface-2); color:var(--text);
+    border-radius:10px; padding:10px 16px; font-weight:700; font-size:13px; cursor:pointer;
+    transition:transform .1s, background .15s, border-color .15s;
+  }
+  .btn:hover{ background:var(--surface-3); }
+  .btn:active{ transform:scale(.97); }
+  .btn:disabled{ opacity:.4; cursor:not-allowed; }
+  .btn.primary{ background:linear-gradient(135deg, var(--accent), var(--accent-2)); border-color:transparent; color:#fff; }
+  .btn.primary:hover{ filter:brightness(1.08); }
+  .btn.gold{ background:linear-gradient(135deg,#ffcf7a, var(--gold)); border-color:transparent; color:#241300; }
+  .btn.danger{ background:transparent; border-color:var(--danger); color:var(--danger); }
+  .btn.danger:hover{ background:rgba(255,92,122,.12); }
+  .btn.sm{ padding:6px 10px; font-size:12px; border-radius:8px; }
+  .btn.icon{ padding:6px 9px; }
+
+  /* game list */
+  .glist{ display:flex; flex-direction:column; gap:8px; }
+  .gcard{
+    display:flex; align-items:center; gap:12px; background:var(--surface-2); border:1px solid var(--line);
+    border-radius:12px; padding:10px 12px; flex-wrap:wrap;
+  }
+  .gcard.eliminated{ opacity:.45; }
+  .gdot{ width:10px; height:10px; border-radius:50%; flex:none; }
+  .gname-wrap{ flex:1 1 140px; min-width:0; }
+  .gname{ font-weight:700; font-size:14px; background:transparent; border:none; color:var(--text); width:100%; padding:2px 0; border-bottom:1px dashed transparent; }
+  .gname:focus{ border-bottom-color:var(--accent); outline:none; }
+  .gmeta{ font-size:11px; color:var(--muted); margin-top:1px; }
+  .gbar-wrap{ flex:1 1 120px; height:8px; background:var(--surface); border-radius:6px; overflow:hidden; min-width:80px; }
+  .gbar{ height:100%; background:linear-gradient(90deg, var(--gold), #ffdf9e); border-radius:6px; }
+  .gfund-wrap{ display:flex; align-items:center; gap:3px; min-width:88px; justify-content:flex-end; }
+  .gfund{
+    font-family:var(--font-mono); font-weight:600; color:var(--gold); font-size:13.5px; text-align:right;
+    width:76px; background:transparent; border:1px solid transparent; border-radius:6px; padding:4px 5px;
+  }
+  .gfund:hover{ border-color:var(--line); }
+  .gfund:focus{ border-color:var(--accent); background:var(--surface); outline:none; }
+  .gfund-suffix{ color:var(--muted); font-size:12px; }
+  .gactions{ display:flex; gap:5px; align-items:center; }
+  .gamt{ width:64px; text-align:right; padding:6px 8px; font-size:12.5px; }
+
+  .add-row{ display:flex; gap:8px; }
+  .add-row input{ flex:1; }
+
+  .empty{ color:var(--muted); font-size:13px; padding:14px; text-align:center; border:1px dashed var(--line); border-radius:12px; }
+
+  /* auction tab */
+  details.adv{ border:1px solid var(--line); border-radius:12px; padding:0; overflow:hidden; }
+  details.adv summary{ cursor:pointer; padding:12px 14px; font-weight:700; font-size:13px; list-style:none; display:flex; align-items:center; gap:8px; background:var(--surface-2); }
+  details.adv summary::-webkit-details-marker{ display:none; }
+  details.adv summary:before{ content:'▸'; transition:transform .15s; }
+  details.adv[open] summary:before{ transform:rotate(90deg); }
+  details.adv .adv-body{ padding:14px; display:flex; flex-direction:column; gap:12px; }
+  .status-dot{ width:8px; height:8px; border-radius:50%; background:var(--muted); flex:none; }
+  .status-dot.on{ background:var(--success); box-shadow:0 0 8px var(--success); }
+  .status-dot.off{ background:var(--danger); }
+  .status-line{ display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--muted); }
+  .queue-item{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:8px 10px; font-size:12.5px; }
+
+  /* wheel */
+  .wheel-zone{ display:flex; flex-direction:column; align-items:center; gap:16px; }
+  .wheel-stage{ position:relative; width:min(320px, 90vw); height:min(320px, 90vw); }
+  .wheel-stage canvas{ width:100%; height:100%; display:block; }
+  .pointer{
+    position:absolute; top:-4px; left:50%; transform:translateX(-50%);
+    width:0; height:0; border-left:12px solid transparent; border-right:12px solid transparent;
+    border-top:20px solid var(--gold); filter:drop-shadow(0 2px 3px rgba(0,0,0,.5)); z-index:3;
+  }
+  .hub{
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:52px; height:52px; border-radius:50%; background:var(--surface-3); border:3px solid var(--gold);
+    display:flex; align-items:center; justify-content:center; font-size:20px; z-index:2;
+  }
+  .spin-controls{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+  .elim-track{ display:flex; gap:6px; flex-wrap:wrap; justify-content:center; }
+  .elim-chip{ font-size:11.5px; background:var(--surface-2); border:1px solid var(--danger); color:var(--danger); border-radius:20px; padding:4px 10px; }
+  .winner-banner{
+    text-align:center; padding:18px; border-radius:16px;
+    background:linear-gradient(135deg, rgba(255,182,72,.16), rgba(168,85,247,.16));
+    border:1px solid var(--gold);
+  }
+  .winner-banner .tag{ font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--gold); }
+  .winner-banner h3{ font-size:24px; margin-top:4px; }
+
+  /* history */
+  .hlist{ display:flex; flex-direction:column; gap:6px; max-height:60vh; overflow-y:auto; }
+  .hitem{ display:flex; gap:10px; align-items:baseline; font-size:12.5px; border-bottom:1px solid var(--line); padding:7px 2px; }
+  .hitem .t{ color:var(--muted); font-family:var(--font-mono); font-size:11px; flex:none; width:64px; }
+  .hitem .badge{ font-size:10px; padding:1px 7px; border-radius:20px; flex:none; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+  .badge.fund{ background:rgba(62,230,168,.15); color:var(--success); }
+  .badge.elim{ background:rgba(255,92,122,.15); color:var(--danger); }
+  .badge.win{ background:rgba(255,182,72,.18); color:var(--gold); }
+  .badge.sys{ background:rgba(156,147,181,.15); color:var(--muted); }
+
+  .toast{
+    position:fixed; bottom:calc(18px + env(safe-area-inset-bottom, 0px)); left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--surface-3); border:1px solid var(--gold); color:var(--text); padding:10px 16px; border-radius:10px;
+    font-size:13px; opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; z-index:50; max-width:90vw; text-align:center;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  @media (prefers-reduced-motion: reduce){ *{ transition:none !important; } }
+</style>
+
+<div class="wrap">
+
+  <header class="head">
+    <div class="logo">🎡</div>
+    <div>
+      <h1>Колесо Ставок</h1>
+      <div class="sub">Аукціон вибору гри для стріму — бали → гривні → вибування</div>
+    </div>
+    <div class="head-stats">
+      <div class="stat"><div class="l">Банк</div><div class="v gold mono" id="statPool">0 ₴</div></div>
+      <div class="stat"><div class="l">У грі</div><div class="v acc mono" id="statActive">0</div></div>
+      <div class="stat"><div class="l">Раунд</div><div class="v mono" id="statRound">1</div></div>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" data-tab="games" aria-selected="true">🎮 Ігри</button>
+    <button class="tab" role="tab" data-tab="auction" aria-selected="false">💰 Аукціон</button>
+    <button class="tab" role="tab" data-tab="wheel" aria-selected="false">🎡 Колесо</button>
+    <button class="tab" role="tab" data-tab="history" aria-selected="false">📜 Історія</button>
+  </nav>
+
+  <!-- GAMES -->
+  <section class="panel active" data-panel="games">
+    <div class="card">
+      <h2>Список ігор</h2>
+      <div class="hint">Це приклад — додайте свої ігри або відредагуйте назви кліком по них. Смужка показує суму ставок відносно лідера.</div>
+      <div class="add-row" style="margin-top:12px;">
+        <input type="text" id="newGameInput" placeholder="Назва нової гри…" maxlength="60">
+        <button class="btn primary" id="addGameBtn">+ Додати</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Претенденти <span class="mono" id="gameCount" style="color:var(--muted); font-weight:500;"></span></h2>
+      <div class="glist" id="gameList" style="margin-top:10px;"></div>
+    </div>
+    <div class="row" style="justify-content:flex-end;">
+      <button class="btn danger sm" id="wipeAllBtn">Скинути весь аукціон</button>
+    </div>
+  </section>
+
+  <!-- AUCTION -->
+  <section class="panel" data-panel="auction">
+    <div class="card">
+      <h2>Курс конвертації</h2>
+      <div class="hint">Скільки коштує редемпшн і скільки гривень він додає до обраної гри.</div>
+      <div class="row" style="margin-top:12px;">
+        <label class="field">Назва редімки
+          <input type="text" id="cfgRewardTitle">
+        </label>
+        <label class="field">Вартість (бали)
+          <input type="number" id="cfgCost" min="1" step="1">
+        </label>
+        <label class="field">Балів за 1 ₴
+          <input type="number" id="cfgRate" min="1" step="1">
+        </label>
+        <label class="field">= гривень за редемпшн
+          <input type="text" id="cfgResult" class="mono" disabled>
+        </label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Зарахувати редемпшн вручну</h2>
+      <div class="hint">Використовуйте, поки нема живого підключення до Twitch — або для ручних донатів.</div>
+      <div class="row" style="margin-top:12px; align-items:flex-end;">
+        <label class="field" style="flex:2 1 180px;">Гра
+          <select id="manualGameSelect"></select>
+        </label>
+        <label class="field" style="flex:1 1 130px;">Сума (₴)
+          <input type="number" id="manualAmount" class="mono" min="0" step="0.5">
+        </label>
+        <label class="field" style="flex:1 1 130px;">Глядач (необов'язково)
+          <input type="text" id="manualViewer" placeholder="nickname" maxlength="30">
+        </label>
+        <button class="btn gold" id="manualRedeemBtn" style="flex:none;">+ Зарахувати ставку</button>
+      </div>
+      <div class="hint">Сума за замовчуванням береться з курсу вище, але її можна змінити для довільного доната.</div>
+    </div>
+
+    <details class="adv" id="twitchPanel">
+      <summary>⚡ Пряме підключення до Twitch (експериментально)</summary>
+      <div class="adv-body">
+        <div class="hint">
+          Слухає редемпшни Channel Points у реальному часі через Twitch EventSub і сам зараховує ставки, коли назва редімки збігається з налаштованою вище. Працює повністю в браузері, бекенд не потрібен — але потребує власного застосунку на <span class="mono">dev.twitch.tv</span> з Redirect URI, що збігається з адресою сторінки.
+        </div>
+        <div class="hint" style="color:var(--gold);">
+          У вбудованому перегляді артефакту OAuth-редірект і WebSocket можуть блокуватись пісочницею. Якщо не спрацює тут — збережіть HTML-файл і захостіть окремо (GitHub Pages, будь-який статичний хостинг), зареєструвавши ту адресу як Redirect URI.
+        </div>
+        <div class="row">
+          <label class="field" style="flex:2 1 220px;">Twitch Client ID
+            <input type="text" id="twClientId" placeholder="ваш client id" autocomplete="off">
+          </label>
+          <div style="display:flex; align-items:flex-end; gap:8px;">
+            <button class="btn primary" id="twConnectBtn">Підключитись</button>
+            <button class="btn danger" id="twDisconnectBtn" style="display:none;">Відключити</button>
+          </div>
+        </div>
+        <div class="status-line"><span class="status-dot off" id="twStatusDot"></span><span id="twStatusText">Не підключено</span></div>
+        <div id="twQueueWrap" style="display:none;">
+          <div class="hint" style="margin-bottom:6px;">Редемпшни, які не вдалось автоматично зіставити з грою — призначте вручну:</div>
+          <div id="twQueue" style="display:flex; flex-direction:column; gap:6px;"></div>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <!-- WHEEL -->
+  <section class="panel" data-panel="wheel">
+    <div class="card wheel-zone">
+      <h2 style="align-self:flex-start;">Колесо на вибування</h2>
+      <div class="hint" style="align-self:flex-start;">Шанс вибути обернено пропорційний до зібраної суми — чим більше ставка за гру, тим безпечніше вона в грі.</div>
+      <div class="wheel-stage">
+        <div class="pointer"></div>
+        <canvas id="wheelCanvas" width="640" height="640"></canvas>
+        <div class="hub">🎯</div>
+      </div>
+      <label class="field" style="max-width:220px;">Тривалість прокрутки (сек)
+        <input type="number" id="cfgSpinDuration" class="mono" min="1" max="15" step="0.5">
+      </label>
+      <div class="spin-controls">
+        <button class="btn primary" id="spinBtn">🎡 Крутити</button>
+        <button class="btn" id="newRoundBtn">↻ Новий раунд (без обнулення ставок)</button>
+      </div>
+      <div id="winnerBanner" style="display:none; width:100%;"></div>
+      <div class="elim-track" id="elimTrack"></div>
+    </div>
+  </section>
+
+  <!-- HISTORY -->
+  <section class="panel" data-panel="history">
+    <div class="card">
+      <div class="row" style="justify-content:space-between; align-items:center;">
+        <h2>Журнал подій</h2>
+        <button class="btn sm danger" id="clearHistBtn">Очистити</button>
+      </div>
+      <div class="hlist" id="histList" style="margin-top:12px;"></div>
+    </div>
+  </section>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var STORAGE_KEY = "wheelOfStakes_v1";
+  var PALETTE_H = [268, 32, 190, 340, 150, 210, 50, 290, 10, 230];
+
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+
+  function defaultState(){
+    return {
+      games: [
+        { id: uid(), name: "Hollow Knight", funded: 150, eliminated: false },
+        { id: uid(), name: "Dark Souls III", funded: 300, eliminated: false },
+        { id: uid(), name: "Stardew Valley", funded: 0, eliminated: false },
+        { id: uid(), name: "Cuphead", funded: 50, eliminated: false }
+      ],
+      history: [
+        { t: Date.now(), type: "sys", text: "Приклад аукціону завантажено — відредагуйте список ігор." }
+      ],
+      settings: { rewardTitle: "Обери гру", cost: 10000, rate: 200, spinDuration: 4.2 },
+      round: 1
+    };
+  }
+
+  var state = null;
+
+  function loadState(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return defaultState();
+      var parsed = JSON.parse(raw);
+      if(!parsed || !Array.isArray(parsed.games)) return defaultState();
+      parsed.settings = Object.assign({ rewardTitle: "Обери гру", cost: 10000, rate: 200, spinDuration: 4.2 }, parsed.settings || {});
+      return parsed;
+    }catch(e){ return defaultState(); }
+  }
+
+  function saveState(){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+  }
+
+  function fmtUAH(n){ return n.toLocaleString('uk-UA') + " ₴"; }
+
+  function toast(msg){
+    var el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function(){ el.classList.remove('show'); }, 2600);
+  }
+
+  function log(type, text){
+    state.history.unshift({ t: Date.now(), type: type, text: text });
+    if(state.history.length > 300) state.history.length = 300;
+  }
+
+  // ---------- tabs ----------
+  function setupTabs(){
+    var tabs = document.querySelectorAll('.tab');
+    tabs.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        tabs.forEach(function(b){ b.setAttribute('aria-selected', 'false'); });
+        btn.setAttribute('aria-selected', 'true');
+        document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+        document.querySelector('.panel[data-panel="' + btn.dataset.tab + '"]').classList.add('active');
+        if(btn.dataset.tab === 'wheel') drawWheel();
+      });
+    });
+  }
+
+  // ---------- games ----------
+  function activeGames(){ return state.games.filter(function(g){ return !g.eliminated; }); }
+
+  function addGame(name){
+    name = name.trim();
+    if(!name) return;
+    state.games.push({ id: uid(), name: name, funded: 0, eliminated: false });
+    log('sys', 'Додано гру «' + name + '»');
+    saveState(); renderAll();
+  }
+
+  function removeGame(id){
+    var g = state.games.find(function(x){ return x.id === id; });
+    state.games = state.games.filter(function(x){ return x.id !== id; });
+    if(g) log('sys', 'Видалено гру «' + g.name + '»');
+    saveState(); renderAll();
+  }
+
+  function fundGame(id, delta, sourceLabel){
+    var g = state.games.find(function(x){ return x.id === id; });
+    if(!g) return;
+    var before = g.funded;
+    g.funded = Math.max(0, g.funded + delta);
+    var applied = Math.round((g.funded - before) * 100) / 100;
+    if(applied > 0) log('fund', (sourceLabel || 'Ручна ставка') + ': +' + fmtUAH(applied) + ' → «' + g.name + '»');
+    else if(applied < 0) log('fund', 'Коригування: ' + fmtUAH(applied) + ' → «' + g.name + '»');
+    saveState(); renderAll();
+  }
+
+  function setFunding(id, value){
+    var g = state.games.find(function(x){ return x.id === id; });
+    if(!g) return;
+    var v = Math.max(0, Math.round(value * 100) / 100);
+    if(v === g.funded) return;
+    var before = g.funded;
+    g.funded = v;
+    log('fund', 'Встановлено суму «' + g.name + '»: ' + fmtUAH(before) + ' → ' + fmtUAH(v));
+    saveState(); renderAll();
+  }
+
+  function renameGame(id, name){
+    var g = state.games.find(function(x){ return x.id === id; });
+    if(!g) return;
+    name = name.trim();
+    if(name) g.name = name;
+    saveState(); renderTopStats();
+  }
+
+  function renderGameList(){
+    var wrap = document.getElementById('gameList');
+    document.getElementById('gameCount').textContent = '(' + state.games.length + ')';
+    if(state.games.length === 0){
+      wrap.innerHTML = '<div class="empty">Список порожній — додайте першу гру вище.</div>';
+      return;
+    }
+    var maxFunded = Math.max(1, Math.max.apply(null, state.games.map(function(g){ return g.funded; })));
+    var sorted = state.games.slice().sort(function(a,b){ return b.funded - a.funded; });
+    wrap.innerHTML = '';
+    sorted.forEach(function(g, i){
+      var card = document.createElement('div');
+      card.className = 'gcard' + (g.eliminated ? ' eliminated' : '');
+      var hue = PALETTE_H[i % PALETTE_H.length];
+      card.innerHTML =
+        '<span class="gdot" style="background:hsl(' + hue + ' 70% 58%)"></span>' +
+        '<div class="gname-wrap">' +
+          '<input class="gname" value="' + escapeAttr(g.name) + '" data-id="' + g.id + '" maxlength="60">' +
+          '<div class="gmeta">' + (g.eliminated ? 'вибула' : 'у грі') + '</div>' +
+        '</div>' +
+        '<div class="gbar-wrap"><div class="gbar" style="width:' + Math.round(100*g.funded/maxFunded) + '%"></div></div>' +
+        '<div class="gfund-wrap">' +
+          '<input type="number" class="gfund mono" data-fund="' + g.id + '" value="' + g.funded + '" min="0" step="0.5" title="Клікніть, щоб задати точну суму">' +
+          '<span class="gfund-suffix">₴</span>' +
+        '</div>' +
+        '<div class="gactions">' +
+          '<input type="number" class="gamt mono" data-amt="' + g.id + '" value="' + defaultRedeemUAH() + '" min="0" step="0.5" title="Сума для +/−, ₴">' +
+          '<button class="btn icon sm" data-act="minus" data-id="' + g.id + '" title="Відняти суму">−</button>' +
+          '<button class="btn icon sm gold" data-act="plus" data-id="' + g.id + '" title="Додати суму">+</button>' +
+          '<button class="btn icon sm" data-act="del" data-id="' + g.id + '" title="Видалити">✕</button>' +
+        '</div>';
+      wrap.appendChild(card);
+    });
+
+    function rowAmount(id){
+      var inp = wrap.querySelector('.gamt[data-amt="' + id + '"]');
+      var v = inp ? parseFloat(inp.value) : NaN;
+      return (isFinite(v) && v > 0) ? Math.round(v*100)/100 : null;
+    }
+    wrap.querySelectorAll('[data-act="plus"]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var amt = rowAmount(b.dataset.id);
+        if(amt === null){ toast('Вкажіть суму більше нуля'); return; }
+        fundGame(b.dataset.id, amt);
+      });
+    });
+    wrap.querySelectorAll('[data-act="minus"]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var amt = rowAmount(b.dataset.id);
+        if(amt === null){ toast('Вкажіть суму більше нуля'); return; }
+        fundGame(b.dataset.id, -amt);
+      });
+    });
+    wrap.querySelectorAll('.gfund').forEach(function(inp){
+      inp.addEventListener('change', function(){
+        var id = inp.dataset.fund;
+        var v = parseFloat(inp.value);
+        var g = state.games.find(function(x){ return x.id === id; });
+        if(!g) return;
+        if(!isFinite(v) || v < 0){ inp.value = g.funded; toast('Некоректна сума'); return; }
+        setFunding(id, v);
+      });
+    });
+    wrap.querySelectorAll('[data-act="del"]').forEach(function(b){
+      b.addEventListener('click', function(){
+        if(b.dataset.confirm === '1'){ removeGame(b.dataset.id); return; }
+        b.dataset.confirm = '1'; b.textContent = 'Точно?'; b.classList.add('danger');
+        setTimeout(function(){ b.dataset.confirm=''; b.textContent='✕'; b.classList.remove('danger'); }, 2500);
+      });
+    });
+    wrap.querySelectorAll('.gname').forEach(function(inp){
+      inp.addEventListener('change', function(){ renameGame(inp.dataset.id, inp.value); });
+    });
+  }
+
+  function escapeAttr(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+  function escapeHtml(s){ return escapeAttr(s); }
+
+  // ---------- auction / settings ----------
+  function defaultRedeemUAH(){
+    return state.settings.rate > 0 ? Math.round((state.settings.cost / state.settings.rate) * 100) / 100 : 0;
+  }
+
+  var manualAmountDirty = false;
+
+  function renderSettings(){
+    document.getElementById('cfgRewardTitle').value = state.settings.rewardTitle;
+    document.getElementById('cfgCost').value = state.settings.cost;
+    document.getElementById('cfgRate').value = state.settings.rate;
+    document.getElementById('cfgResult').value = fmtUAH(defaultRedeemUAH());
+    document.getElementById('cfgSpinDuration').value = state.settings.spinDuration;
+    if(!manualAmountDirty){
+      var amountInput = document.getElementById('manualAmount');
+      if(amountInput) amountInput.value = defaultRedeemUAH();
+    }
+  }
+
+  function renderManualSelect(){
+    var sel = document.getElementById('manualGameSelect');
+    var prev = sel.value;
+    sel.innerHTML = '';
+    activeGames().forEach(function(g){
+      var opt = document.createElement('option');
+      opt.value = g.id; opt.textContent = g.name;
+      sel.appendChild(opt);
+    });
+    if(prev && activeGames().some(function(g){return g.id===prev;})) sel.value = prev;
+  }
+
+  function manualRedeem(){
+    var sel = document.getElementById('manualGameSelect');
+    var id = sel.value;
+    if(!id){ toast('Немає активних ігор'); return; }
+    var viewer = document.getElementById('manualViewer').value.trim();
+    var amountInput = document.getElementById('manualAmount');
+    var uah = parseFloat(amountInput.value);
+    if(!isFinite(uah) || uah <= 0){ toast('Вкажіть суму більше нуля'); return; }
+    uah = Math.round(uah * 100) / 100;
+    fundGame(id, uah, viewer ? viewer : 'Ручний редемпшн');
+    toast('Зараховано ' + fmtUAH(uah));
+    document.getElementById('manualViewer').value = '';
+    manualAmountDirty = false;
+    amountInput.value = defaultRedeemUAH();
+  }
+
+  // ---------- wheel ----------
+  var rotation = 0;
+  var spinning = false;
+
+  function computeSegments(){
+    var list = activeGames();
+    var weights = list.map(function(g){ return 1 / (1 + g.funded / 50); });
+    var total = weights.reduce(function(a,b){ return a+b; }, 0) || 1;
+    var acc = 0;
+    return list.map(function(g, i){
+      var start = acc / total * 360;
+      acc += weights[i];
+      var end = acc / total * 360;
+      return { game: g, start: start, end: end, weight: weights[i], chance: weights[i]/total };
+    });
+  }
+
+  function drawWheel(){
+    var canvas = document.getElementById('wheelCanvas');
+    var ctx = canvas.getContext('2d');
+    var W = canvas.width, H = canvas.height, R = W/2 - 10, cx = W/2, cy = H/2;
+    ctx.clearRect(0,0,W,H);
+    var segs = computeSegments();
+    if(segs.length === 0){
+      ctx.fillStyle = '#332a49'; ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#9c93b5'; ctx.font = '600 22px Manrope, sans-serif'; ctx.textAlign='center';
+      ctx.fillText('Додайте ігри', cx, cy);
+      return;
+    }
+    segs.forEach(function(s, i){
+      var a0 = (s.start - 90) * Math.PI/180, a1 = (s.end - 90) * Math.PI/180;
+      var hue = PALETTE_H[i % PALETTE_H.length];
+      ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,R,a0,a1); ctx.closePath();
+      ctx.fillStyle = 'hsl(' + hue + ' 68% 50%)';
+      ctx.fill();
+      ctx.strokeStyle = '#0c0a13'; ctx.lineWidth = 3; ctx.stroke();
+
+      var mid = (a0+a1)/2;
+      ctx.save();
+      ctx.translate(cx + Math.cos(mid)*R*0.62, cy + Math.sin(mid)*R*0.62);
+      ctx.rotate(mid + Math.PI/2);
+      ctx.fillStyle = '#fff';
+      ctx.font = '700 22px Manrope, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = 6;
+      var label = s.game.name.length > 16 ? s.game.name.slice(0,15) + '…' : s.game.name;
+      ctx.fillText(label, 0, 0);
+      ctx.restore();
+    });
+  }
+
+  function spin(){
+    if(spinning) return;
+    var segs = computeSegments();
+    if(segs.length < 2){ toast('Потрібно щонайменше 2 гри у грі'); return; }
+    document.getElementById('winnerBanner').style.display = 'none';
+
+    var r = Math.random() * 360;
+    var target = segs.find(function(s){ return r >= s.start && r < s.end; }) || segs[segs.length-1];
+
+    var canvas = document.getElementById('wheelCanvas');
+    var currentMod = ((rotation % 360) + 360) % 360;
+    var desiredMod = (360 - r) % 360;
+    var delta = desiredMod - currentMod;
+    if(delta < 0) delta += 360;
+    var extraSpins = 6 + Math.floor(Math.random()*3);
+    rotation += extraSpins*360 + delta;
+
+    var duration = Math.min(15, Math.max(1, state.settings.spinDuration || 4.2));
+
+    spinning = true;
+    document.getElementById('spinBtn').disabled = true;
+    canvas.style.transition = 'transform ' + duration + 's cubic-bezier(.15,.67,.15,1)';
+    canvas.style.transform = 'rotate(' + rotation + 'deg)';
+
+    setTimeout(function(){
+      spinning = false;
+      document.getElementById('spinBtn').disabled = false;
+      target.game.eliminated = true;
+      log('elim', '🎡 Вибуває: «' + target.game.name + '»');
+      saveState();
+      renderGameList(); renderTopStats(); renderManualSelect(); renderHistory(); renderElimTrack();
+
+      var remaining = activeGames();
+      var isFinal = remaining.length === 1;
+      if(isFinal){
+        var win = remaining[0];
+        log('win', '🏆 Переможець аукціону: «' + win.name + '»');
+        saveState(); renderHistory();
+        var b = document.getElementById('winnerBanner');
+        b.style.display = 'block';
+        b.innerHTML = '<div class="winner-banner"><div class="tag">Переможець раунду</div><h3>🏆 ' + escapeHtml(win.name) + '</h3></div>';
+      } else {
+        toast('Вибула: ' + target.game.name);
+      }
+
+      // hold the frozen result at the pointer for a moment, then reset the
+      // wheel and redraw it with the eliminated game's segment removed
+      setTimeout(function(){
+        rotation = 0;
+        canvas.style.transition = 'none';
+        void canvas.offsetHeight;
+        canvas.style.transform = 'rotate(0deg)';
+        drawWheel();
+      }, isFinal ? 0 : 1100);
+    }, duration * 1000 + 100);
+  }
+
+  function renderElimTrack(){
+    var wrap = document.getElementById('elimTrack');
+    var elim = state.games.filter(function(g){ return g.eliminated; });
+    wrap.innerHTML = elim.map(function(g){ return '<span class="elim-chip">✕ ' + escapeHtml(g.name) + '</span>'; }).join('');
+  }
+
+  function newRound(){
+    state.games.forEach(function(g){ g.eliminated = false; });
+    state.round += 1;
+    rotation = 0;
+    var canvas = document.getElementById('wheelCanvas');
+    canvas.style.transition = 'none';
+    void canvas.offsetHeight;
+    canvas.style.transform = 'rotate(0deg)';
+    document.getElementById('winnerBanner').style.display = 'none';
+    log('sys', '↻ Новий раунд №' + state.round + ' (ставки збережено)');
+    saveState(); renderAll();
+  }
+
+  // ---------- history ----------
+  function renderHistory(){
+    var list = document.getElementById('histList');
+    if(state.history.length === 0){ list.innerHTML = '<div class="empty">Історія порожня.</div>'; return; }
+    list.innerHTML = state.history.map(function(h){
+      var badge = h.type === 'fund' ? '<span class="badge fund">ставка</span>'
+        : h.type === 'elim' ? '<span class="badge elim">вибуття</span>'
+        : h.type === 'win' ? '<span class="badge win">перемога</span>'
+        : '<span class="badge sys">подія</span>';
+      var time = new Date(h.t).toLocaleTimeString('uk-UA', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+      return '<div class="hitem"><span class="t">' + time + '</span>' + badge + '<span>' + escapeHtml(h.text) + '</span></div>';
+    }).join('');
+  }
+
+  // ---------- twitch (experimental, best-effort) ----------
+  var twitch = { token: null, login: null, broadcasterId: null, ws: null, sessionId: null };
+
+  function twSetStatus(text, on){
+    document.getElementById('twStatusText').textContent = text;
+    var dot = document.getElementById('twStatusDot');
+    dot.className = 'status-dot' + (on === true ? ' on' : on === false ? ' off' : '');
+  }
+
+  function twParseHash(){
+    if(location.hash.indexOf('access_token') === -1) return null;
+    var params = new URLSearchParams(location.hash.slice(1));
+    var token = params.get('access_token');
+    var state_ = params.get('state');
+    if(token && state_ && sessionStorage.getItem('twOauthState') === state_){
+      history.replaceState(null, '', location.pathname + location.search);
+      return token;
+    }
+    return null;
+  }
+
+  function twConnect(){
+    var clientId = document.getElementById('twClientId').value.trim();
+    if(!clientId){ toast('Вкажіть Twitch Client ID'); return; }
+    try{ localStorage.setItem('wheelOfStakes_twClientId', clientId); }catch(e){}
+    var st = uid();
+    try{ sessionStorage.setItem('twOauthState', st); }catch(e){}
+    var redirect = location.origin + location.pathname;
+    var url = 'https://id.twitch.tv/oauth2/authorize'
+      + '?client_id=' + encodeURIComponent(clientId)
+      + '&redirect_uri=' + encodeURIComponent(redirect)
+      + '&response_type=token'
+      + '&scope=' + encodeURIComponent('channel:read:redemptions')
+      + '&state=' + st
+      + '&force_verify=true';
+    try{
+      window.location.assign(url);
+    }catch(e){
+      twSetStatus('Не вдалось перейти на Twitch (заблоковано пісочницею). Спробуйте на самостійно захостованій копії сторінки.', false);
+    }
+  }
+
+  function twDisconnect(){
+    if(twitch.ws){ try{ twitch.ws.close(); }catch(e){} }
+    twitch = { token: null, login: null, broadcasterId: null, ws: null, sessionId: null };
+    document.getElementById('twConnectBtn').style.display = '';
+    document.getElementById('twDisconnectBtn').style.display = 'none';
+    document.getElementById('twQueueWrap').style.display = 'none';
+    twSetStatus('Не підключено', null);
+  }
+
+  function twAfterToken(token){
+    twitch.token = token;
+    var clientId = document.getElementById('twClientId').value.trim();
+    twSetStatus('Авторизація успішна, отримуємо профіль…', null);
+    fetch('https://api.twitch.tv/helix/users', {
+      headers: { 'Authorization': 'Bearer ' + token, 'Client-Id': clientId }
+    }).then(function(r){ return r.json(); }).then(function(data){
+      var user = data && data.data && data.data[0];
+      if(!user) throw new Error('no user');
+      twitch.login = user.login;
+      twitch.broadcasterId = user.id;
+      document.getElementById('twConnectBtn').style.display = 'none';
+      document.getElementById('twDisconnectBtn').style.display = '';
+      twSetStatus('Підключено як ' + user.login + ' — відкриваємо прослуховування…', true);
+      twOpenSocket(clientId);
+    }).catch(function(){
+      twSetStatus('Не вдалось отримати профіль Twitch. Перевірте Client ID та права додатку.', false);
+    });
+  }
+
+  function twOpenSocket(clientId){
+    try{
+      var ws = new WebSocket('wss://eventsub.wss.twitch.tv/ws?keepalive_timeout_seconds=30');
+      twitch.ws = ws;
+      ws.onmessage = function(ev){
+        var msg;
+        try{ msg = JSON.parse(ev.data); }catch(e){ return; }
+        var type = msg.metadata && msg.metadata.message_type;
+        if(type === 'session_welcome'){
+          twitch.sessionId = msg.payload.session.id;
+          twSubscribe(clientId);
+        } else if(type === 'notification'){
+          twHandleRedemption(msg.payload.event);
+        } else if(type === 'session_reconnect'){
+          try{ ws.close(); }catch(e){}
+        }
+      };
+      ws.onclose = function(){ if(twitch.token) twSetStatus('З’єднання розірвано.', false); };
+      ws.onerror = function(){ twSetStatus('Помилка WebSocket (можливо заблоковано пісочницею артефакту).', false); };
+    }catch(e){
+      twSetStatus('WebSocket недоступний у цьому середовищі.', false);
+    }
+  }
+
+  function twSubscribe(clientId){
+    fetch('https://api.twitch.tv/helix/eventsub/subscriptions', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + twitch.token,
+        'Client-Id': clientId,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        type: 'channel.channel_points_custom_reward_redemption.add',
+        version: '1',
+        condition: { broadcaster_user_id: twitch.broadcasterId },
+        transport: { method: 'websocket', session_id: twitch.sessionId }
+      })
+    }).then(function(r){
+      if(!r.ok) throw new Error('subscribe failed');
+      twSetStatus('Підключено як ' + twitch.login + ' — слухаємо редемпшни', true);
+      document.getElementById('twQueueWrap').style.display = '';
+    }).catch(function(){
+      twSetStatus('Не вдалось оформити підписку EventSub.', false);
+    });
+  }
+
+  var twQueue = [];
+
+  function twHandleRedemption(evt){
+    var titleCfg = state.settings.rewardTitle.trim().toLowerCase();
+    var title = (evt.reward && evt.reward.title || '').toLowerCase();
+    var cost = evt.reward && evt.reward.cost;
+    if(titleCfg && title.indexOf(titleCfg) === -1) return;
+    if(state.settings.cost && cost !== state.settings.cost) return;
+
+    var input = (evt.user_input || '').trim();
+    var match = state.games.find(function(g){
+      return !g.eliminated && input && g.name.toLowerCase() === input.toLowerCase();
+    }) || state.games.find(function(g){
+      return !g.eliminated && input && g.name.toLowerCase().indexOf(input.toLowerCase()) !== -1;
+    });
+
+    var uah = state.settings.rate > 0 ? Math.round((state.settings.cost / state.settings.rate) * 100) / 100 : 0;
+
+    if(match){
+      fundGame(match.id, uah, evt.user_name + ' (Twitch)');
+      toast(evt.user_name + ' → ' + match.name);
+    } else {
+      twQueue.push({ id: uid(), user: evt.user_name, input: input, uah: uah });
+      renderTwQueue();
+      toast('Новий редемпшн від ' + evt.user_name + ' — потребує призначення');
+    }
+  }
+
+  function renderTwQueue(){
+    var wrap = document.getElementById('twQueue');
+    if(twQueue.length === 0){ wrap.innerHTML = '<div class="hint">Черга порожня.</div>'; return; }
+    wrap.innerHTML = '';
+    twQueue.forEach(function(q){
+      var row = document.createElement('div');
+      row.className = 'queue-item';
+      var opts = activeGames().map(function(g){ return '<option value="' + g.id + '">' + escapeHtml(g.name) + '</option>'; }).join('');
+      row.innerHTML = '<strong>' + escapeHtml(q.user) + '</strong> ввів «' + escapeHtml(q.input || '—') + '» · ' + fmtUAH(q.uah)
+        + ' <select data-qid="' + q.id + '">' + opts + '</select>'
+        + ' <button class="btn sm gold" data-assign="' + q.id + '">Зарахувати</button>';
+      wrap.appendChild(row);
+    });
+    wrap.querySelectorAll('[data-assign]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var qid = btn.dataset.assign;
+        var q = twQueue.find(function(x){ return x.id === qid; });
+        var sel = wrap.querySelector('select[data-qid="' + qid + '"]');
+        if(q && sel && sel.value){
+          fundGame(sel.value, q.uah, q.user + ' (Twitch)');
+          twQueue = twQueue.filter(function(x){ return x.id !== qid; });
+          renderTwQueue();
+        }
+      });
+    });
+  }
+
+  // ---------- render orchestration ----------
+  function renderTopStats(){
+    var pool = state.games.reduce(function(a,g){ return a + g.funded; }, 0);
+    document.getElementById('statPool').textContent = fmtUAH(pool);
+    document.getElementById('statActive').textContent = activeGames().length + ' / ' + state.games.length;
+    document.getElementById('statRound').textContent = state.round;
+  }
+
+  function renderAll(){
+    renderTopStats();
+    renderGameList();
+    renderSettings();
+    renderManualSelect();
+    renderHistory();
+    renderElimTrack();
+    drawWheel();
+  }
+
+  function bindStaticEvents(){
+    setupTabs();
+
+    document.getElementById('addGameBtn').addEventListener('click', function(){
+      var inp = document.getElementById('newGameInput');
+      addGame(inp.value); inp.value = '';
+    });
+    document.getElementById('newGameInput').addEventListener('keydown', function(e){
+      if(e.key === 'Enter'){ addGame(this.value); this.value=''; }
+    });
+
+    document.getElementById('wipeAllBtn').addEventListener('click', function(){
+      var btn = this;
+      if(btn.dataset.confirm === '1'){
+        state = defaultState();
+        state.games.forEach(function(g){ g.funded = 0; });
+        state.history = [{ t: Date.now(), type: 'sys', text: 'Аукціон повністю скинуто.' }];
+        saveState(); renderAll();
+        btn.dataset.confirm=''; btn.textContent = 'Скинути весь аукціон';
+        return;
+      }
+      btn.dataset.confirm = '1'; btn.textContent = 'Натисніть ще раз для підтвердження';
+      setTimeout(function(){ btn.dataset.confirm=''; btn.textContent='Скинути весь аукціон'; }, 3000);
+    });
+
+    ['cfgRewardTitle','cfgCost','cfgRate'].forEach(function(id){
+      document.getElementById(id).addEventListener('change', function(){
+        state.settings.rewardTitle = document.getElementById('cfgRewardTitle').value || 'Обери гру';
+        state.settings.cost = Math.max(1, parseInt(document.getElementById('cfgCost').value,10) || 10000);
+        state.settings.rate = Math.max(1, parseInt(document.getElementById('cfgRate').value,10) || 200);
+        saveState(); renderSettings();
+      });
+    });
+
+    document.getElementById('cfgSpinDuration').addEventListener('change', function(){
+      var v = parseFloat(this.value);
+      state.settings.spinDuration = isFinite(v) ? Math.min(15, Math.max(1, v)) : 4.2;
+      saveState(); renderSettings();
+    });
+
+    document.getElementById('manualRedeemBtn').addEventListener('click', manualRedeem);
+    document.getElementById('manualAmount').addEventListener('input', function(){ manualAmountDirty = true; });
+
+    document.getElementById('spinBtn').addEventListener('click', spin);
+    document.getElementById('newRoundBtn').addEventListener('click', newRound);
+
+    document.getElementById('clearHistBtn').addEventListener('click', function(){
+      state.history = [];
+      saveState(); renderHistory();
+    });
+
+    document.getElementById('twConnectBtn').addEventListener('click', twConnect);
+    document.getElementById('twDisconnectBtn').addEventListener('click', twDisconnect);
+
+    window.addEventListener('resize', drawWheel);
+  }
+
+  function boot(){
+    state = loadState();
+
+    try{
+      var savedClientId = localStorage.getItem('wheelOfStakes_twClientId');
+      if(savedClientId) document.getElementById('twClientId').value = savedClientId;
+    }catch(e){}
+
+    bindStaticEvents();
+    renderAll();
+    renderTwQueue();
+
+    var token = twParseHash();
+    if(token) twAfterToken(token);
+
+    try{
+      if(window.claude && window.claude.hot && window.claude.hot.snapshot){
+        window.claude.hot.snapshot(function(){ return state; });
+      }
+    }catch(e){}
+  }
+
+  try{
+    if(window.claude && window.claude.hot && window.claude.hot.ready){
+      window.claude.hot.ready(function(data){
+        boot();
+        if(data && Array.isArray(data.games)) { state = data; saveState(); renderAll(); }
+      });
+    } else {
+      boot();
+    }
+  }catch(e){ boot(); }
+
+})();
+</script>
+
+</body></html>
